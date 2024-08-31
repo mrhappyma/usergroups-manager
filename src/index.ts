@@ -56,6 +56,7 @@ const updateHome = async (
                 value: current.id,
               }
             : undefined,
+          min_query_length: 0,
         },
       ],
     },
@@ -145,14 +146,14 @@ app.options("usergroup_select", async ({ ack, options }) => {
     options: result.map((ug) => ({
       text: {
         type: "plain_text",
-        text: `@${ug.item.handle} - ${ug.item.name}`,
+        text: `@${ug.item.handle} - ${ug.item.name}`.slice(0, 75),
       },
       value: ug.item.id,
     })),
   });
 });
 
-app.action("usergroup_select", async ({ ack, body, action, client }) => {
+app.action("usergroup_select", async ({ ack, body, action }) => {
   ack();
   const a = action as ExternalSelectAction;
 
