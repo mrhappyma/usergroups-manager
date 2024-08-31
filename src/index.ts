@@ -12,7 +12,7 @@ const app = new App({
   signingSecret: env.SIGNING_SECRET,
 });
 
-app.event("app_home_opened", async ({ ack, event, client }) => {
+app.event("app_home_opened", async ({ event }) => {
   updateHome(event.user);
 });
 
@@ -133,7 +133,7 @@ const getUsergroupPage = async (cursor?: string) => {
 };
 getUsergroupPage();
 
-app.options("usergroup_select", async ({ ack, body, options }) => {
+app.options("usergroup_select", async ({ ack, options }) => {
   const fuse = new Fuse(usergroups, {
     keys: ["name", "handle"],
     shouldSort: true,
@@ -155,7 +155,6 @@ app.options("usergroup_select", async ({ ack, body, options }) => {
 app.action("usergroup_select", async ({ ack, body, action, client }) => {
   ack();
   const a = action as ExternalSelectAction;
-  console.log(a);
 
   if (a.selected_option?.value)
     await updateHome(body.user.id, {
@@ -164,7 +163,7 @@ app.action("usergroup_select", async ({ ack, body, action, client }) => {
     });
 });
 
-app.action("toggle_usergroup", async ({ ack, body, action, client }) => {
+app.action("toggle_usergroup", async ({ ack, body, action }) => {
   ack();
   const a = action as ButtonAction;
 
