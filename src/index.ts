@@ -16,6 +16,14 @@ app.event("app_home_opened", async ({ ack, event, client }) => {
   updateHome(event.user);
 });
 
+app.event("subteam_created", async ({ event }) => {
+  usergroups.push({
+    id: event.subteam.id,
+    name: event.subteam.name,
+    handle: event.subteam.handle,
+  });
+});
+
 const updateHome = async (
   user: string,
   current?: { id: string; name: string },
@@ -156,44 +164,50 @@ app.action("usergroup_select", async ({ ack, body, action, client }) => {
     });
 });
 
-// app.action("toggle_usergroup", async ({ ack, body, action, client }) => {
-//   ack();
-//   const a = action as ButtonAction;
+app.action("toggle_usergroup", async ({ ack, body, action, client }) => {
+  ack();
+  const a = action as ButtonAction;
 
-//   const group = usergroups.find((ug) => ug.id === a.value);
-//   const groupwusers = await app.client.usergroups.users.list({
-//     usergroup: a.value!,
-//   });
-//   const ingroup = groupwusers.users!.includes(body.user.id);
+  const g = usergroups.find((ug) => ug.id === a.value);
+  const group = await app.client.usergroups.users.list({
+    usergroup: a.value!,
+  });
+  const ingroup = group.users!.includes(body.user.id);
 
-//   if (ingroup) {
-//     console.log(
-//       "a" + groupwusers.users!.filter((u) => u !== body.user.id).join(",")
-//     );
+  if (ingroup) {
+    if (group.users!.filter((u) => u !== body.user.id).length === 0) {
+      await updateHome(
+        body.user.id,
+        {
+          id: a.value!,
+          name: `@${g!.handle} - ${g!.name}`,
+        },
+        "can't leave that group, you're the last member"
+      );
+      return;
+    }
+    await app.client.usergroups.users.update({
+      usergroup: a.value!,
+      users: group.users!.filter((u) => u !== body.user.id).join(","),
+      include_count: true,
+    });
+  } else {
+    await app.client.usergroups.users.update({
+      usergroup: a.value!,
+      users: `${group.users?.join(",")},${body.user.id}`,
+      include_count: true,
+    });
+  }
 
-//     await app.client.usergroups.users.update({
-//       usergroup: a.value!,
-//       users:
-//         groupwusers.users!.filter((u) => u !== body.user.id).join(",") || "",
-//       include_count: true,
-//     });
-//   } else {
-//     await app.client.usergroups.users.update({
-//       usergroup: a.value!,
-//       users: [...groupwusers.users!, body.user.id].join(","),
-//       include_count: true,
-//     });
-//   }
-
-//   await updateHome(
-//     body.user.id,
-//     {
-//       id: a.value!,
-//       name: `@${group!.handle} - ${group!.name}`,
-//     },
-//     ingroup ? `left group ${group!.name}` : `joined group ${group!.name}`
-//   );
-// });
+  await updateHome(
+    body.user.id,
+    {
+      id: a.value!,
+      name: `@${g!.handle} - ${g!.name}`,
+    },
+    ingroup ? `left the group` : `joined the group`
+  );
+});
 
 app.start(parseInt(env.PORT, 10)).then(() => {
   console.log("⚡️ hurr durr I'ma ninja sloth");
